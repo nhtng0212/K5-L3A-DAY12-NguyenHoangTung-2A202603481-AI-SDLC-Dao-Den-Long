@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { GameState } from './core/gameState.js';
+import { VFXManager } from './core/vfx.js';
 import {
   createBambooTexture,
   createTerracottaRoofTexture,
@@ -210,6 +211,11 @@ class App {
     this.lanternMeshes = [];
     this.islandGroup = new THREE.Group();
     this.scene.add(this.islandGroup);
+
+    this.vfx = new VFXManager(this.scene);
+    this.jumpAnimScale = 1.0;
+    this.landAnimSquash = 1.0;
+    this.wasGrounded = true;
 
     this.gltfLoader = new GLTFLoader();
     this.models = {};
@@ -586,8 +592,8 @@ class App {
     let moveX = 0, moveZ = 0;
     if (this.keys['KeyW'] || this.keys['ArrowUp']) moveZ += 1;
     if (this.keys['KeyS'] || this.keys['ArrowDown']) moveZ -= 1;
-    if (this.keys['KeyA'] || this.keys['ArrowLeft']) moveX -= 1;
-    if (this.keys['KeyD'] || this.keys['ArrowRight']) moveX += 1;
+    if (this.keys['KeyA'] || this.keys['ArrowLeft']) moveX += 1;
+    if (this.keys['KeyD'] || this.keys['ArrowRight']) moveX -= 1;
 
     if (moveX !== 0 || moveZ !== 0) this.walkCycle += 0.25;
 
@@ -610,17 +616,35 @@ class App {
 
     for (let i = 0; i < events.length; i++) {
       const ev = events[i];
-      if (ev.name === 'mote_picked') audio.playMoteChime();
-      else if (ev.name === 'deposit' || ev.name === 'refuel') audio.playDepositSound();
-      else if (ev.name === 'lantern_lit') audio.playLanternLitGong();
-      else if (ev.name === 'pulse') {
+      if (ev.name === 'mote_picked') {
+        audio.playMoteChime();
+        this.vfx.spawnMotePickup(this.gameState.player.pos, this.camera);
+      } else if (ev.name === 'deposit' || ev.name === 'refuel') {
+        audio.playDepositSound();
+      } else if (ev.name === 'lantern_lit') {
+        audio.playLanternLitGong();
+      } else if (ev.name === 'pulse') {
         audio.playPulseSound();
         this.triggerPulseWave();
-      } else if (ev.name === 'dash') audio.playDashSound();
-      else if (ev.name === 'jump') audio.playJumpSound();
-      else if (ev.name === 'player_hit') audio.playHitSound();
-      else if (ev.name === 'game_over') this.showResultModal(ev.data);
+      } else if (ev.name === 'dash') {
+        audio.playDashSound();
+        this.vfx.spawnDashTrail(this.gameState.player.pos, this.gameState.dash_dir || [0, 1]);
+      } else if (ev.name === 'jump') {
+        audio.playJumpSound();
+        this.vfx.spawnJumpPuff(this.gameState.player.pos);
+        this.jumpAnimScale = 1.35;
+      } else if (ev.name === 'player_hit') {
+        audio.playHitSound();
+      } else if (ev.name === 'game_over') {
+        this.showResultModal(ev.data);
+      }
     }
+
+    if (!this.wasGrounded && this.gameState.player.grounded) {
+      this.vfx.spawnLandingImpact(this.gameState.player.pos);
+      this.landAnimSquash = 0.72;
+    }
+    this.wasGrounded = this.gameState.player.grounded;
 
     this.updateHUD();
   }
@@ -756,17 +780,50 @@ class App {
       this.accumulatedTime -= this.tickInterval;
     }
 
-    this.syncMeshes(now * 0.001);
+    const dtSec = Math.min(0.1, dt * 0.001);
+    this.syncMeshes(now * 0.001, dtSec);
     this.updateCamera();
+    this.vfx.update(dtSec, this.camera);
 
     this.renderer.render(this.scene, this.camera);
   }
 
-  syncMeshes(timeSec) {
+  syncMeshes(timeSec, dtSec = 0.016) {
     const pPos = this.gameState.player.pos;
     const walkBob = this.gameState.player.grounded ? Math.abs(Math.sin(this.walkCycle)) * 0.12 : 0;
     this.playerGroup.position.set(pPos[0], pPos[1] + walkBob, pPos[2]);
-    this.playerGroup.rotation.y = (this.camYawDeg * Math.PI) / 180 + Math.PI;
+
+    // Face movement direction
+    const targetYaw = (this.gameState.player.facing_yaw * Math.PI) / 180;
+    this.playerGroup.rotation.y = targetYaw;
+
+    // Dash tilt and camera speed FOV kick
+    if (this.gameState.dash_ticks_left > 0) {
+      this.playerGroup.rotation.x = 0.35;
+    } else {
+      this.playerGroup.rotation.x = 0;
+    }
+
+    // Jump & Land Squash/Stretch
+    if (this.jumpAnimScale > 1.0) {
+      this.jumpAnimScale = Math.max(1.0, this.jumpAnimScale - dtSec * 2.2);
+      const stretch = this.jumpAnimScale;
+      const squashXZ = 1 / Math.sqrt(stretch);
+      this.playerGroup.scale.set(squashXZ, stretch, squashXZ);
+    } else if (this.landAnimSquash < 1.0) {
+      this.landAnimSquash = Math.min(1.0, this.landAnimSquash + dtSec * 3.5);
+      const squash = this.landAnimSquash;
+      const stretchXZ = 1 / Math.sqrt(squash);
+      this.playerGroup.scale.set(stretchXZ, squash, stretchXZ);
+    } else {
+      this.playerGroup.scale.set(1, 1, 1);
+    }
+
+    const targetFOV = this.gameState.dash_ticks_left > 0 ? 64 : 55;
+    if (Math.abs(this.camera.fov - targetFOV) > 0.1) {
+      this.camera.fov += (targetFOV - this.camera.fov) * 0.25;
+      this.camera.updateProjectionMatrix();
+    }
 
     if (this.miniLantern) {
       this.miniLantern.rotation.z = Math.sin(timeSec * 5) * 0.15;
