@@ -8,10 +8,18 @@
 ## Phase 2 (Ticket-02 — "Ba hòn đảo")
 - **Model:** Gemini 3.8 Flash / Antigravity Agent
 - **Ước tính token:** ~35,000 tokens.
+- **Hoạt động:** Chuẩn hóa số liệu, cơ chế lướt, nhảy, rơi đảo, Gió Lạc, Bùa Gió, bản đồ 3 đêm, bục nhảy, nâng cấp Test Contract v1.1, 13/13 test PASS.
+
+## Phase 3 (Ticket-03 — Change Request "Đèn cạn dầu")
+- **Model:** Gemini 3.8 Flash / Antigravity Agent
+- **Ước tính token:** ~30,000 tokens.
 - **Hoạt động:**
-  1. Chuẩn hóa bộ số liệu theo Phần 1: Tốc độ di chuyển, nhảy, trọng lực, chi phí đèn (10), hồi chiêu tỏa sáng.
-  2. Bổ sung cơ chế mới: Lướt (Dash 14m/s), rơi khỏi đảo ($Y < -10$), bùa gió (Charm C1/C2), Gió Lạc (Drifters D1/D2 cướp đom đóm).
-  3. Xây dựng bản đồ chuẩn 3 Đêm: Đảo Bến, Đảo Cau (2 đảo + cầu tre + bục nhảy), Đảo Chuông (3 tầng + tháp chuông + gió mạnh).
-  4. Nâng cấp Test Contract lên v1.1: Snapshot đầy đủ các mảng `motes`, `drifters`, `charms`, `wind`, `player.vel`.
-  5. Kiểm tra hồi quy toàn diện: Đạt 13/13 test PASS, hiệu năng 21.600 tick chỉ mất 0.02s (yêu cầu $\le 30s$).
-- **Tổng token ước tính 2 Phase:** ~60,000 tokens.
+  1. Viết tài liệu ADR-001 (Quyết định kiến trúc cho mô hình nhiên liệu và luật thắng).
+  2. Viết CHANGELOG ghi rõ các breaking changes.
+  3. Cài đặt hệ thống nhiên liệu đèn (fuel decay, refuel, relight cost 5 motes, lantern_out).
+  4. Cài đặt Bóng Mực hút dầu (`drain`), mất vùng an toàn khi fuel < 30, thưởng +15 điểm khi pulse trúng drain.
+  5. Cài đặt luật thắng mới (`dawn_survived` khi đạt $\ge 60\%$ đèn sáng tại bình minh).
+  6. Sức chứa tăng dần: `10 + 2 * successful_lights` (tối đa 20).
+  7. Chế độ mù màu (Colorblind mode) trong giao diện & 3D.
+  8. Nâng cấp Test Contract lên v1.2, đạt 19/19 test PASS.
+- **Tổng token ước tính 3 Phase:** ~90,000 tokens.

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { GameState } from './core/gameState.js';
 
-// --- Procedural Sound Synthesis (Web Audio API) ---
+// --- Procedural Sound Synthesis ---
 class AudioManager {
   constructor() {
     this.ctx = null;
@@ -160,10 +160,10 @@ class App {
     this.currentNight = 1;
     this.totalScore = 0;
     this.mouseSens = parseFloat(localStorage.getItem('dao_sens') || '0.4');
+    this.colorblind = localStorage.getItem('dao_colorblind') === 'true';
 
     this.gameState = new GameState({}, this.currentNight);
 
-    // Three.js Scene
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0x0e1430);
     this.scene.fog = new THREE.FogExp2(0x1b2350, 0.012);
@@ -216,14 +216,12 @@ class App {
   }
 
   buildWorld() {
-    // Clear old island elements
     while (this.islandGroup.children.length > 0) {
       this.islandGroup.remove(this.islandGroup.children[0]);
     }
     this.lanternMeshes = [];
 
     if (this.currentNight === 1) {
-      // Night 1: Đảo Bến (Single island r=40m)
       const grassGeo = new THREE.CylinderGeometry(40, 40.5, 2.5, 64);
       const grassMat = new THREE.MeshStandardMaterial({ color: 0x2f5d50, roughness: 0.8 });
       const grass = new THREE.Mesh(grassGeo, grassMat);
@@ -237,7 +235,6 @@ class App {
       cliff.position.y = -12.5;
       this.islandGroup.add(cliff);
     } else if (this.currentNight === 2) {
-      // Night 2: Đảo Cau (2 islands A and B r=28m, bridge x in [26, 44], z in [-2, 2])
       [ [0, 0], [70, 0] ].forEach(([cx, cz]) => {
         const grassGeo = new THREE.CylinderGeometry(28, 28.5, 2.5, 48);
         const grassMat = new THREE.MeshStandardMaterial({ color: 0x2f5d50, roughness: 0.8 });
@@ -246,14 +243,12 @@ class App {
         this.islandGroup.add(grass);
       });
 
-      // Bamboo bridge
       const bridgeGeo = new THREE.BoxGeometry(18, 0.4, 4);
       const bridgeMat = new THREE.MeshStandardMaterial({ color: 0x6b4a2f, roughness: 0.7 });
       const bridge = new THREE.Mesh(bridgeGeo, bridgeMat);
       bridge.position.set(35, -0.2, 0);
       this.islandGroup.add(bridge);
 
-      // 2 Jump pads (r=1m cylinders)
       const padGeo = new THREE.CylinderGeometry(1.0, 1.1, 0.3, 16);
       const padMat = new THREE.MeshStandardMaterial({ color: 0xf2c14e, emissive: 0xc9b48a, emissiveIntensity: 0.5 });
       const pad1 = new THREE.Mesh(padGeo, padMat);
@@ -262,34 +257,28 @@ class App {
       pad2.position.set(50, 0.15, -18);
       this.islandGroup.add(pad1, pad2);
     } else if (this.currentNight === 3) {
-      // Night 3: Đảo Chuông (3 tiers + center bell tower)
-      // Tier 0: Y=0, r=45
       const t0Geo = new THREE.CylinderGeometry(45, 45.5, 2.0, 64);
       const grassMat = new THREE.MeshStandardMaterial({ color: 0x2f5d50, roughness: 0.8 });
       const t0 = new THREE.Mesh(t0Geo, grassMat);
       t0.position.y = -1.0;
       this.islandGroup.add(t0);
 
-      // Tier 1: Y=3, ring r=12-24 on z > 0
       const t1Geo = new THREE.CylinderGeometry(24, 24, 3.0, 32);
       const t1 = new THREE.Mesh(t1Geo, grassMat);
       t1.position.set(0, 1.5, 0);
       this.islandGroup.add(t1);
 
-      // Tier 2: Y=6, disc r=8
       const t2Geo = new THREE.CylinderGeometry(8, 8, 3.0, 24);
       const t2 = new THREE.Mesh(t2Geo, grassMat);
       t2.position.set(0, 4.5, 0);
       this.islandGroup.add(t2);
 
-      // Bell Tower (cylinder r=2m, height 8m on Tier 2)
       const towerGeo = new THREE.CylinderGeometry(2.0, 2.0, 8.0, 16);
       const towerMat = new THREE.MeshStandardMaterial({ color: 0x6b4a2f, roughness: 0.8 });
       const tower = new THREE.Mesh(towerGeo, towerMat);
       tower.position.set(0, 10.0, 0);
       this.islandGroup.add(tower);
 
-      // Jump pad at (0, 3, 13)
       const padGeo = new THREE.CylinderGeometry(1.0, 1.1, 0.3, 16);
       const padMat = new THREE.MeshStandardMaterial({ color: 0xf2c14e, emissive: 0xc9b48a, emissiveIntensity: 0.5 });
       const pad3 = new THREE.Mesh(padGeo, padMat);
@@ -297,7 +286,7 @@ class App {
       this.islandGroup.add(pad3);
     }
 
-    // Build Lanterns for current night
+    // Build Lanterns
     for (const lData of this.gameState.lanterns) {
       const group = new THREE.Group();
       group.position.set(lData.pos[0], lData.pos[1], lData.pos[2]);
@@ -341,11 +330,17 @@ class App {
       safeRing.position.y = 0.06;
       group.add(safeRing);
 
+      // Fuel Bar mesh on top of lantern
+      const fuelBarGeo = new THREE.PlaneGeometry(1.2, 0.15);
+      const fuelBarMat = new THREE.MeshBasicMaterial({ color: 0xffb347, side: THREE.DoubleSide });
+      const fuelBar = new THREE.Mesh(fuelBarGeo, fuelBarMat);
+      fuelBar.position.y = 4.3;
+      group.add(fuelBar);
+
       this.islandGroup.add(group);
-      this.lanternMeshes.push({ id: lData.id, group, silkMat, light, safeRing });
+      this.lanternMeshes.push({ id: lData.id, group, silk, silkMat, light, safeRing, fuelBar });
     }
 
-    // Pulse Wave Mesh
     const waveGeo = new THREE.RingGeometry(0.1, 0.4, 48);
     const waveMat = new THREE.MeshBasicMaterial({ color: 0xffe9b0, side: THREE.DoubleSide, transparent: true, opacity: 0 });
     this.pulseWaveMesh = new THREE.Mesh(waveGeo, waveMat);
@@ -468,6 +463,15 @@ class App {
       this.mouseSens = parseFloat(e.target.value);
       localStorage.setItem('dao_sens', this.mouseSens.toString());
     });
+
+    const cbToggle = document.getElementById('colorblind-toggle');
+    if (cbToggle) {
+      cbToggle.checked = this.colorblind;
+      cbToggle.addEventListener('change', (e) => {
+        this.colorblind = e.target.checked;
+        localStorage.setItem('dao_colorblind', this.colorblind.toString());
+      });
+    }
   }
 
   togglePause() {
@@ -489,8 +493,8 @@ class App {
     this.gameState = new GameState({}, this.currentNight);
     this.buildWorld();
     const intros = {
-      2: { title: 'ĐÊM 2 — ĐẢO CAU', desc: 'Hai hòn đảo nối bằng cầu tre mỏng manh. Coi chừng Gió Lạc và tận dụng bục nhảy!' },
-      3: { title: 'ĐÊM 3 — ĐẢO CHUÔNG', desc: 'Đảo ba tầng hiểm trở. Gió mạnh gào thét và Bóng Mực hung hãn hơn bao giờ hết!' }
+      2: { title: 'ĐÊM 2 — ĐẢO CAU', desc: 'Hai hòn đảo nối bằng cầu tre. Hãy châm dầu giữ đèn và coi chừng Gió Lạc!' },
+      3: { title: 'ĐÊM 3 — ĐẢO CHUÔNG', desc: 'Đảo 3 tầng hiểm trở. Giữ sáng ít nhất 5/7 đèn cho tới bình minh!' }
     };
     if (intros[this.currentNight]) {
       document.getElementById('intro-title').textContent = intros[this.currentNight].title;
@@ -534,7 +538,7 @@ class App {
     for (let i = 0; i < events.length; i++) {
       const ev = events[i];
       if (ev.name === 'mote_picked') audio.playMoteChime();
-      else if (ev.name === 'deposit') audio.playDepositSound();
+      else if (ev.name === 'deposit' || ev.name === 'refuel') audio.playDepositSound();
       else if (ev.name === 'lantern_lit') audio.playLanternLitGong();
       else if (ev.name === 'pulse') {
         audio.playPulseSound();
@@ -555,7 +559,6 @@ class App {
   }
 
   updateHUD() {
-    // Flames
     const flames = this.gameState.player.flames;
     const fContainer = document.getElementById('flames-container');
     for (let i = 0; i < 3; i++) {
@@ -565,29 +568,30 @@ class App {
       }
     }
 
-    // Timer & Alert
     const timeLeft = Math.max(0, this.gameState.time_left_s);
     const secsInt = Math.floor(timeLeft);
     const timerElem = document.getElementById('hud-timer');
     timerElem.textContent = `${String(Math.floor(secsInt / 60)).padStart(2, '0')}:${String(secsInt % 60).padStart(2, '0')}`;
-    if (secsInt <= 30) timerElem.classList.add('timer-alert');
-    else timerElem.classList.remove('timer-alert');
+    if (secsInt <= 30) {
+      timerElem.classList.add('timer-alert');
+      if (this.colorblind) timerElem.textContent = `⚠ ${timerElem.textContent}`;
+    } else {
+      timerElem.classList.remove('timer-alert');
+    }
 
-    // Score & Lanterns
     const litCount = this.gameState.lanterns.filter((l) => l.lit).length;
-    document.getElementById('hud-lanterns').textContent = `Đèn: ${litCount} / ${this.gameState.lanterns.length}`;
+    document.getElementById('hud-lanterns').textContent = `Đèn sáng: ${litCount} / ${this.gameState.lanterns.length}`;
     document.getElementById('hud-score').textContent = this.gameState.score;
 
-    // 10-slot Motes Bar
     const carried = this.gameState.player.carried;
-    document.getElementById('mote-bar-text').textContent = `Đom đóm: ${carried} / 10`;
+    const cap = this.gameState.player.capacity;
+    document.getElementById('mote-bar-text').textContent = `Đom đóm: ${carried} / ${cap}`;
     const slots = document.getElementById('mote-slots').children;
     for (let i = 0; i < 10; i++) {
       if (i < carried) slots[i].classList.add('filled');
       else slots[i].classList.remove('filled');
     }
 
-    // Abilities Cooldowns
     const dashBtn = document.getElementById('dash-btn');
     const dashCdText = document.getElementById('dash-cd-text');
     if (this.gameState.dash_cooldown_ticks <= 0 || this.gameState.charm_ticks > 0) {
@@ -617,14 +621,22 @@ class App {
     const prompt = document.getElementById('interact-prompt');
     let nearLantern = null;
     for (const l of this.gameState.lanterns) {
-      if (!l.lit && Math.hypot(this.gameState.player.pos[0] - l.pos[0], this.gameState.player.pos[2] - l.pos[2]) <= 2.0) {
-        nearLantern = l;
-        break;
+      if (Math.hypot(this.gameState.player.pos[0] - l.pos[0], this.gameState.player.pos[2] - l.pos[2]) <= 2.0) {
+        if (!l.lit || (l.lit && l.fuel_ticks < 6000)) {
+          nearLantern = l;
+          break;
+        }
       }
     }
     if (nearLantern) {
       prompt.style.display = 'block';
-      prompt.textContent = `E — Nạp ánh sáng (${nearLantern.deposited}/10)`;
+      if (!nearLantern.lit) {
+        const cost = nearLantern.ever_lit ? 5 : 10;
+        prompt.textContent = `E — ${nearLantern.ever_lit ? 'Thắp lại' : 'Nạp ánh sáng'} (${nearLantern.deposited}/${cost})`;
+      } else {
+        const fuelVal = Math.round(nearLantern.fuel_ticks / 60);
+        prompt.textContent = `E — Châm dầu (Dầu: ${fuelVal}/100)`;
+      }
     } else {
       prompt.style.display = 'none';
     }
@@ -638,13 +650,13 @@ class App {
     const nextBtn = document.getElementById('next-night-btn');
 
     if (data.result === 'won') {
-      title.textContent = '🎉 THẮNG ĐÊM!';
+      title.textContent = '🌅 SỐNG SÓT ĐẾN BÌNH MINH!';
       title.style.color = '#F2C14E';
-      desc.textContent = `Mây đã thắp sáng tất cả ngọn đèn ở Đêm ${this.currentNight}!`;
-      scoreElem.textContent = `Điểm Đêm: ${this.gameState.score}`;
+      desc.textContent = `Bạn đã giữ vững các ngọn đèn ở Đêm ${this.currentNight} cho tới bình minh!`;
+      scoreElem.textContent = `Tổng Điểm: ${this.gameState.score}`;
       if (this.currentNight >= 3) {
-        title.textContent = '🌅 BÌNH MINH TRÊN ĐẢO ĐÈN LỒNG!';
-        desc.textContent = 'Toàn bộ 3 hòn đảo đã được thắp sáng hoàn toàn! Sương đen đã tan biến vĩnh viễn.';
+        title.textContent = '🏆 CHIẾN THẮNG TRỌN VẸN 3 ĐÊM!';
+        desc.textContent = 'Sương đen tan biến hoàn toàn, ánh dương rực rỡ chiếu rọi khắp Đảo Đèn Lồng!';
         nextBtn.style.display = 'none';
       } else {
         nextBtn.style.display = 'inline-block';
@@ -652,7 +664,7 @@ class App {
     } else {
       title.textContent = '💀 THẤT BẠI';
       title.style.color = '#FF5A5F';
-      desc.textContent = data.reason === 'no_flames' ? 'Mây đã mất hết Ngọn Lửa...' : 'Bình minh đã đến trước khi kịp hoàn thành...';
+      desc.textContent = data.reason === 'no_flames' ? 'Mây đã bị Bóng Mực dập tắt ngọn lửa...' : 'Bình minh đã đến nhưng số đèn sáng không đủ 60%...';
       scoreElem.textContent = `Điểm: ${this.gameState.score}`;
       nextBtn.style.display = 'none';
     }
@@ -679,7 +691,6 @@ class App {
   }
 
   syncMeshes(timeSec) {
-    // 1. Player
     const pPos = this.gameState.player.pos;
     const walkBob = this.gameState.player.grounded ? Math.abs(Math.sin(this.walkCycle)) * 0.12 : 0;
     this.playerGroup.position.set(pPos[0], pPos[1] + walkBob, pPos[2]);
@@ -689,33 +700,48 @@ class App {
       this.miniLantern.rotation.z = Math.sin(timeSec * 5) * 0.15;
     }
 
-    // Dynamic ambient lighting according to ticket standard:
-    // intensity = 0.15 + 0.55 * (lit / total)
     const litCount = this.gameState.lanterns.filter((l) => l.lit).length;
     const progress = litCount / this.gameState.lanterns.length;
     this.ambientLight.intensity = 0.15 + 0.55 * progress;
 
-    // 2. Lanterns
+    // Lanterns sync
     for (let i = 0; i < this.gameState.lanterns.length; i++) {
       const lData = this.gameState.lanterns[i];
       const mObj = this.lanternMeshes[i];
       if (mObj) {
+        const fuelVal = lData.fuel_ticks / 60.0;
         if (lData.lit) {
-          mObj.silkMat.emissive.setHex(0xffb347);
-          mObj.silkMat.emissiveIntensity = 0.9 + Math.sin(timeSec * 3 + i) * 0.2;
+          mObj.silk.scale.set(1, 1, 1);
+          mObj.fuelBar.visible = true;
+          mObj.fuelBar.scale.x = Math.max(0.01, fuelVal / 100.0);
+          mObj.fuelBar.lookAt(this.camera.position);
+
+          if (fuelVal < 30) {
+            // Blink at 1Hz
+            const blink = Math.sin(timeSec * Math.PI * 2) > 0;
+            mObj.silkMat.emissiveIntensity = blink ? 0.9 : 0.2;
+            mObj.fuelBar.material.color.setHex(0xff5a5f);
+            mObj.safeRing.material.opacity = 0; // lost safe zone
+          } else {
+            mObj.silkMat.emissive.setHex(0xffb347);
+            mObj.silkMat.emissiveIntensity = 0.9 + Math.sin(timeSec * 3 + i) * 0.2;
+            mObj.fuelBar.material.color.setHex(0xffb347);
+            mObj.safeRing.material.opacity = 0.6;
+          }
           mObj.light.intensity = 2.4;
-          mObj.safeRing.material.opacity = 0.6 + Math.sin(timeSec * 3) * 0.15;
         } else {
-          const ratio = lData.deposited / 10.0;
-          mObj.silkMat.emissive.setHex(0x6b4a2f);
-          mObj.silkMat.emissiveIntensity = 0.2 + ratio * 0.5;
-          mObj.light.intensity = 0.4 + ratio * 0.8;
+          // Unlit
+          mObj.fuelBar.visible = false;
+          mObj.silk.scale.set(0.8, 0.8, 0.8); // 20% deflated in colorblind / standard
+          mObj.silkMat.emissive.setHex(0x5b5f6e);
+          mObj.silkMat.emissiveIntensity = 0.1;
+          mObj.light.intensity = 0.2;
           mObj.safeRing.material.opacity = 0;
         }
       }
     }
 
-    // 3. Motes
+    // Motes
     const activeIds = new Set();
     for (let i = 0; i < this.gameState.motes.length; i++) {
       const mote = this.gameState.motes[i];
@@ -740,8 +766,11 @@ class App {
       }
     }
 
-    // 4. Shades
+    // Shades
     const activeShadeIds = new Set();
+    const shadeEyeColor = this.colorblind ? 0x00b3ff : 0xe879f9;
+    const shadeEmissive = this.colorblind ? 0x00b3ff : 0x7a3cff;
+
     for (let i = 0; i < this.gameState.shades.length; i++) {
       const shade = this.gameState.shades[i];
       activeShadeIds.add(shade.id);
@@ -749,13 +778,13 @@ class App {
       if (!mItem) {
         const group = new THREE.Group();
         const bodyGeo = new THREE.SphereGeometry(0.75, 16, 16);
-        const bodyMat = new THREE.MeshStandardMaterial({ color: 0x120a1a, roughness: 0.9, emissive: 0x7a3cff, emissiveIntensity: 0.6 });
+        const bodyMat = new THREE.MeshStandardMaterial({ color: 0x120a1a, roughness: 0.9, emissive: shadeEmissive, emissiveIntensity: 0.6 });
         const body = new THREE.Mesh(bodyGeo, bodyMat);
         body.position.y = 0.8;
         group.add(body);
 
         const eyeGeo = new THREE.SphereGeometry(0.12, 8, 8);
-        const eyeMat = new THREE.MeshBasicMaterial({ color: 0xe879f9 });
+        const eyeMat = new THREE.MeshBasicMaterial({ color: shadeEyeColor });
         const lEye = new THREE.Mesh(eyeGeo, eyeMat);
         lEye.position.set(-0.25, 0.95, 0.6);
         const rEye = new THREE.Mesh(eyeGeo, eyeMat);
@@ -766,12 +795,18 @@ class App {
         mItem = { group, bodyMat, eyeMat };
         this.shadeMeshes.set(shade.id, mItem);
       }
+
       mItem.group.position.set(shade.pos[0], shade.pos[1], shade.pos[2]);
+      mItem.eyeMat.color.setHex(shadeEyeColor);
+
       if (shade.state === 'stunned') {
         mItem.bodyMat.emissive.setHex(0x3a3450);
         mItem.bodyMat.emissiveIntensity = 1.0;
+      } else if (shade.state === 'drain') {
+        mItem.bodyMat.emissive.setHex(0xff5a5f);
+        mItem.bodyMat.emissiveIntensity = 0.8 + Math.sin(timeSec * 8) * 0.4;
       } else {
-        mItem.bodyMat.emissive.setHex(0x7a3cff);
+        mItem.bodyMat.emissive.setHex(shadeEmissive);
         mItem.bodyMat.emissiveIntensity = 0.6;
       }
     }
@@ -782,7 +817,7 @@ class App {
       }
     }
 
-    // 5. Drifters (Gió Lạc)
+    // Drifters
     const activeDrifters = new Set();
     for (let i = 0; i < this.gameState.drifters.length; i++) {
       const d = this.gameState.drifters[i];
@@ -805,7 +840,7 @@ class App {
       }
     }
 
-    // 6. Charms (Bùa Gió)
+    // Charms
     const activeCharms = new Set();
     for (let i = 0; i < this.gameState.charms.length; i++) {
       const c = this.gameState.charms[i];
@@ -830,7 +865,6 @@ class App {
       }
     }
 
-    // 7. Pulse Wave
     if (this.pulseWaveAnim && this.pulseWaveMesh) {
       this.pulseWaveAnim.radius += 0.4;
       this.pulseWaveAnim.opacity -= 0.04;

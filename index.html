@@ -24,7 +24,6 @@
       height: 100%;
       display: block;
     }
-    /* HUD Overlay */
     #hud {
       position: absolute;
       top: 0;
@@ -95,7 +94,6 @@
       color: #FFE9B0;
       margin-top: 2px;
     }
-    /* Prompt near lantern */
     #interact-prompt {
       position: absolute;
       top: 65%;
@@ -112,7 +110,6 @@
       box-shadow: 0 0 20px rgba(255, 179, 71, 0.6);
       pointer-events: none;
     }
-    /* HUD Bottom */
     .hud-bottom {
       display: flex;
       justify-content: space-between;
@@ -136,7 +133,6 @@
       font-weight: bold;
       color: #F2C14E;
     }
-    /* 10-slot Mote Bar */
     .mote-bar-container {
       text-align: center;
     }
@@ -167,7 +163,6 @@
       box-shadow: 0 0 8px rgba(255, 179, 71, 0.8);
       border-color: #FFE9B0;
     }
-    /* Cooldown icons */
     .abilities-container {
       display: flex;
       gap: 12px;
@@ -192,7 +187,6 @@
     .ability-cd {
       opacity: 0.4;
     }
-    /* Modals (Menu, Intro, Pause, Game Over, Dawn) */
     .modal-overlay {
       position: absolute;
       top: 0;
@@ -282,13 +276,13 @@
 
       <div class="hud-center-top stat-card">
         <div class="night-badge" id="hud-night">ĐÊM 1 — ĐẢO BẾN</div>
-        <div class="timer" id="hud-timer">05:00</div>
+        <div class="timer" id="hud-timer">04:00</div>
       </div>
 
       <div class="hud-right stat-card">
         <div style="font-size: 11px; color: #8FA3B8; margin-bottom: 3px;">TỔNG ĐIỂM</div>
         <div class="score-value" id="hud-score">0</div>
-        <div class="lantern-count" id="hud-lanterns">Đèn: 0 / 5</div>
+        <div class="lantern-count" id="hud-lanterns">Đèn sáng: 0 / 5</div>
       </div>
     </div>
 
@@ -299,7 +293,7 @@
         <div><span class="key-badge">W A S D</span> Di chuyển</div>
         <div><span class="key-badge">Shift / Q</span> Lướt (Dash)</div>
         <div><span class="key-badge">Space</span> Nhảy</div>
-        <div><span class="key-badge">E</span> Nạp đèn | <span class="key-badge">F</span> Tỏa sáng</div>
+        <div><span class="key-badge">E</span> Nạp / Châm dầu | <span class="key-badge">F</span> Tỏa sáng</div>
         <div><span class="key-badge">Esc / P</span> Tạm dừng</div>
       </div>
 
@@ -332,7 +326,7 @@
     <div class="modal-box">
       <h1 class="modal-title" id="intro-title">ĐÊM 1 — ĐẢO BẾN</h1>
       <p class="modal-desc" id="intro-desc">
-        <i>"Mây à, đêm nay sương đen đã nuốt hết ánh sáng Đảo Bến. Hãy gom đom đóm thắp sáng 5 Đèn Lớn và coi chừng lũ Bóng Mực..."</i> — Lời Ông Đăng.
+        <i>"Mây à, đêm nay sương đen đã nuốt hết ánh sáng Đảo Bến. Hãy thắp đèn và nhớ châm dầu giữ sáng cho tới bình minh..."</i> — Lời Ông Đăng.
       </p>
       <button class="btn-primary" id="start-night-btn">Bắt Đầu Đêm</button>
     </div>
@@ -353,6 +347,10 @@
         <div class="settings-row">
           <span>Độ nhạy chuột:</span>
           <input type="range" id="sens-slider" min="0.1" max="1.5" step="0.05" value="0.4">
+        </div>
+        <div class="settings-row">
+          <span>Bảng màu dễ phân biệt (Colorblind):</span>
+          <input type="checkbox" id="colorblind-toggle" style="width: 20px; height: 20px; cursor: pointer;">
         </div>
       </div>
     </div>

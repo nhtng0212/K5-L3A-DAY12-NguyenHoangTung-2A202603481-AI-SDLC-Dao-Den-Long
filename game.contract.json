@@ -1,5 +1,5 @@
 {
-  "contract_version": "1.1",
+  "contract_version": "1.2",
   "team": "2A202603481-NguyenHoangTung",
   "build_cmd": "npm install",
   "run_cmd": "npm run dev",
@@ -12,7 +12,15 @@
     "jump_speed": 7.0,
     "gravity": -20.0,
     "carry_capacity": 10,
+    "capacity_max": 20,
     "lantern_cost": 10,
+    "relight_cost": 5,
+    "fuel_max": 100,
+    "fuel_decay_per_s": 1.0,
+    "fuel_per_mote": 10,
+    "drain_per_s": 5,
+    "low_fuel_threshold": 30,
+    "win_ratio": 0.6,
     "lantern_count_night1": 5,
     "lantern_count_night2": 6,
     "lantern_count_night3": 7,
@@ -35,15 +43,17 @@
     "hit_drop_ratio": 0.5,
     "fall_enabled": true,
     "flames": 3,
-    "night1_duration_s": 300,
-    "night2_duration_s": 330,
-    "night3_duration_s": 360,
+    "night1_duration_s": 240,
+    "night2_duration_s": 270,
+    "night3_duration_s": 300,
     "score": {
-      "per_mote_deposited": 10,
-      "per_lantern": 100,
+      "per_mote_deposited": 5,
+      "per_lantern_lit": 100,
+      "per_lantern_relit": 40,
       "per_stun": 5,
-      "per_second_left": 2,
-      "per_flame_left": 50
+      "per_stun_drain": 15,
+      "dawn_per_lantern": 50,
+      "dawn_per_flame": 50
     }
   }
 }

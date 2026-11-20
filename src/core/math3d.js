@@ -6,6 +6,10 @@ export function round3(val) {
   return Math.round(val * 1000) / 1000;
 }
 
+export function round1(val) {
+  return Math.round(val * 10) / 10;
+}
+
 export function formatPos(pos) {
   return [round3(pos[0]), round3(pos[1]), round3(pos[2])];
 }
@@ -16,13 +20,6 @@ export function distXZ(a, b) {
   return Math.hypot(dx, dz);
 }
 
-/**
- * Project input move vector [x, z] with cam_yaw_deg:
- * θ = cam_yaw_deg in radians.
- * x' = x*cosθ + z*sinθ
- * z' = -x*sinθ + z*cosθ
- * Normalize if length > 1.
- */
 export function projectMove(move, camYawDeg) {
   const x = Math.max(-1, Math.min(1, move[0] || 0));
   const z = Math.max(-1, Math.min(1, move[1] || 0));
