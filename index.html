@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Đảo Đèn Lồng - Đêm 1: Đảo Bến</title>
+  <title>Đảo Đèn Lồng - Day 12 AI SDLC</title>
   <style>
     * {
       box-sizing: border-box;
@@ -15,9 +15,9 @@
       width: 100%;
       height: 100%;
       overflow: hidden;
-      background: #090a14;
+      background: #0E1430;
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      color: #fff;
+      color: #F5F1E6;
     }
     #game-canvas {
       width: 100%;
@@ -35,7 +35,7 @@
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      padding: 24px;
+      padding: 20px;
     }
     .hud-top {
       display: flex;
@@ -43,21 +43,17 @@
       align-items: flex-start;
     }
     .stat-card {
-      background: rgba(15, 18, 35, 0.75);
-      border: 1px solid rgba(255, 180, 50, 0.3);
+      background: rgba(14, 20, 48, 0.85);
+      border: 1px solid rgba(242, 193, 78, 0.3);
       border-radius: 12px;
-      padding: 12px 20px;
+      padding: 10px 18px;
       backdrop-filter: blur(8px);
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
     }
     .flames-container {
       display: flex;
-      gap: 8px;
+      gap: 6px;
       font-size: 24px;
-    }
-    .flame-icon {
-      transition: transform 0.3s ease, opacity 0.3s ease;
-      filter: drop-shadow(0 0 6px rgba(255, 100, 30, 0.8));
     }
     .flame-lost {
       opacity: 0.2;
@@ -66,87 +62,145 @@
     .hud-center-top {
       text-align: center;
     }
+    .night-badge {
+      font-size: 13px;
+      color: #F2C14E;
+      font-weight: bold;
+      letter-spacing: 1px;
+      margin-bottom: 2px;
+    }
     .timer {
       font-size: 28px;
       font-weight: bold;
-      color: #ffde7d;
-      text-shadow: 0 0 10px rgba(255, 222, 125, 0.5);
+      color: #FFE9B0;
     }
-    .lantern-status {
-      margin-top: 6px;
-      font-size: 15px;
-      color: #ffd180;
+    .timer-alert {
+      color: #FF5A5F !important;
+      animation: timerBlink 0.8s infinite;
+    }
+    @keyframes timerBlink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
     }
     .hud-right {
       text-align: right;
     }
     .score-value {
-      font-size: 26px;
+      font-size: 24px;
       font-weight: bold;
-      color: #ffbd4a;
+      color: #F2C14E;
     }
-    .mote-count {
-      margin-top: 4px;
+    .lantern-count {
+      font-size: 14px;
+      color: #FFE9B0;
+      margin-top: 2px;
+    }
+    /* Prompt near lantern */
+    #interact-prompt {
+      position: absolute;
+      top: 65%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(14, 20, 48, 0.9);
+      border: 2px solid #FFB347;
+      border-radius: 20px;
+      padding: 8px 24px;
       font-size: 16px;
-      color: #fff275;
+      font-weight: bold;
+      color: #FFE9B0;
+      display: none;
+      box-shadow: 0 0 20px rgba(255, 179, 71, 0.6);
+      pointer-events: none;
     }
-    /* HUD Bottom Controls */
+    /* HUD Bottom */
     .hud-bottom {
       display: flex;
       justify-content: space-between;
       align-items: flex-end;
     }
     .controls-card {
-      background: rgba(15, 18, 35, 0.65);
+      background: rgba(14, 20, 48, 0.75);
       border: 1px solid rgba(255, 255, 255, 0.1);
       border-radius: 10px;
-      padding: 10px 16px;
-      font-size: 13px;
-      color: #c7d2fe;
-      line-height: 1.6;
+      padding: 8px 14px;
+      font-size: 12px;
+      color: #8FA3B8;
+      line-height: 1.5;
     }
     .key-badge {
       display: inline-block;
-      padding: 2px 6px;
-      background: #252d4a;
-      border: 1px solid #48547a;
+      padding: 1px 5px;
+      background: #1B2350;
+      border: 1px solid #7A3CFF;
       border-radius: 4px;
       font-weight: bold;
-      color: #ffde7d;
+      color: #F2C14E;
     }
-    .pulse-btn-container {
+    /* 10-slot Mote Bar */
+    .mote-bar-container {
       text-align: center;
     }
-    .pulse-indicator {
-      display: inline-block;
-      background: linear-gradient(135deg, #f59e0b, #d97706);
-      border: 2px solid #fef3c7;
-      border-radius: 30px;
-      padding: 10px 24px;
-      font-size: 16px;
+    .mote-bar-label {
+      font-size: 12px;
+      color: #FFE9B0;
+      margin-bottom: 4px;
       font-weight: bold;
-      color: #fff;
-      box-shadow: 0 0 15px rgba(245, 158, 11, 0.6);
-      pointer-events: auto;
+    }
+    .mote-slots {
+      display: flex;
+      gap: 4px;
+      background: rgba(14, 20, 48, 0.85);
+      border: 1px solid rgba(242, 193, 78, 0.4);
+      border-radius: 10px;
+      padding: 6px;
+    }
+    .mote-slot {
+      width: 18px;
+      height: 24px;
+      border-radius: 4px;
+      background: #1B2350;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      transition: background 0.2s, box-shadow 0.2s;
+    }
+    .mote-slot.filled {
+      background: linear-gradient(180deg, #FFF6C2, #FFB347);
+      box-shadow: 0 0 8px rgba(255, 179, 71, 0.8);
+      border-color: #FFE9B0;
+    }
+    /* Cooldown icons */
+    .abilities-container {
+      display: flex;
+      gap: 12px;
+    }
+    .ability-btn {
+      background: rgba(14, 20, 48, 0.85);
+      border: 2px solid #7A3CFF;
+      border-radius: 12px;
+      padding: 10px 14px;
+      text-align: center;
+      font-size: 12px;
+      color: #F5F1E6;
       cursor: pointer;
+      pointer-events: auto;
+      min-width: 90px;
+      transition: opacity 0.2s, border-color 0.2s;
     }
-    .pulse-ready {
-      animation: pulseGlow 2s infinite;
+    .ability-ready {
+      border-color: #F2C14E;
+      box-shadow: 0 0 12px rgba(242, 193, 78, 0.5);
     }
-    @keyframes pulseGlow {
-      0% { box-shadow: 0 0 10px rgba(245, 158, 11, 0.5); }
-      50% { box-shadow: 0 0 25px rgba(245, 158, 11, 0.9); }
-      100% { box-shadow: 0 0 10px rgba(245, 158, 11, 0.5); }
+    .ability-cd {
+      opacity: 0.4;
     }
-    /* Modal */
-    #end-modal {
+    /* Modals (Menu, Intro, Pause, Game Over, Dawn) */
+    .modal-overlay {
       position: absolute;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(5, 7, 15, 0.85);
-      backdrop-filter: blur(10px);
+      background: rgba(6, 9, 20, 0.88);
+      backdrop-filter: blur(12px);
       display: none;
       flex-direction: column;
       justify-content: center;
@@ -155,44 +209,60 @@
       pointer-events: auto;
     }
     .modal-box {
-      background: #111827;
-      border: 2px solid #f59e0b;
+      background: #0E1430;
+      border: 2px solid #F2C14E;
       border-radius: 20px;
-      padding: 40px;
+      padding: 36px;
       text-align: center;
-      max-width: 480px;
-      box-shadow: 0 0 40px rgba(245, 158, 11, 0.3);
+      max-width: 520px;
+      box-shadow: 0 0 50px rgba(242, 193, 78, 0.25);
     }
     .modal-title {
-      font-size: 32px;
-      margin-bottom: 16px;
+      font-size: 28px;
+      margin-bottom: 12px;
+      color: #F2C14E;
     }
     .modal-desc {
-      font-size: 16px;
-      color: #9ca3af;
+      font-size: 15px;
+      color: #8FA3B8;
       margin-bottom: 24px;
-      line-height: 1.5;
+      line-height: 1.6;
     }
-    .modal-score {
-      font-size: 24px;
-      color: #fcd34d;
-      margin-bottom: 30px;
-      font-weight: bold;
-    }
-    .restart-btn {
-      background: linear-gradient(135deg, #f59e0b, #d97706);
+    .btn-primary {
+      background: linear-gradient(135deg, #FFB347, #C8102E);
       border: none;
-      border-radius: 12px;
-      color: #fff;
-      font-size: 18px;
+      border-radius: 10px;
+      color: #FFF;
+      font-size: 16px;
       font-weight: bold;
-      padding: 14px 36px;
+      padding: 12px 30px;
       cursor: pointer;
+      margin: 6px;
       transition: transform 0.2s, box-shadow 0.2s;
     }
-    .restart-btn:hover {
+    .btn-primary:hover {
       transform: scale(1.05);
-      box-shadow: 0 0 20px rgba(245, 158, 11, 0.7);
+      box-shadow: 0 0 20px rgba(255, 179, 71, 0.6);
+    }
+    .btn-secondary {
+      background: #1B2350;
+      border: 1px solid #8FA3B8;
+      border-radius: 10px;
+      color: #F5F1E6;
+      font-size: 15px;
+      padding: 10px 24px;
+      cursor: pointer;
+      margin: 6px;
+    }
+    .settings-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 14px 0;
+      font-size: 14px;
+    }
+    .settings-row input[type="range"] {
+      width: 180px;
     }
   </style>
 </head>
@@ -202,7 +272,7 @@
   <div id="hud">
     <div class="hud-top">
       <div class="stat-card">
-        <div style="font-size: 12px; color: #9ca3af; margin-bottom: 4px;">NGỌN LỬA SỐNG</div>
+        <div style="font-size: 11px; color: #8FA3B8; margin-bottom: 3px;">NGỌN LỬA SỐNG</div>
         <div class="flames-container" id="flames-container">
           <span class="flame-icon">🔥</span>
           <span class="flame-icon">🔥</span>
@@ -211,37 +281,91 @@
       </div>
 
       <div class="hud-center-top stat-card">
+        <div class="night-badge" id="hud-night">ĐÊM 1 — ĐẢO BẾN</div>
         <div class="timer" id="hud-timer">05:00</div>
-        <div class="lantern-status" id="hud-lanterns">Đèn Lớn: 0 / 5</div>
       </div>
 
       <div class="hud-right stat-card">
-        <div style="font-size: 12px; color: #9ca3af; margin-bottom: 4px;">ĐIỂM SỐ</div>
+        <div style="font-size: 11px; color: #8FA3B8; margin-bottom: 3px;">TỔNG ĐIỂM</div>
         <div class="score-value" id="hud-score">0</div>
-        <div class="mote-count" id="hud-motes">Đom đóm: 0 / 10</div>
+        <div class="lantern-count" id="hud-lanterns">Đèn: 0 / 5</div>
       </div>
     </div>
+
+    <div id="interact-prompt">E — Nạp ánh sáng (0/10)</div>
 
     <div class="hud-bottom">
       <div class="controls-card">
         <div><span class="key-badge">W A S D</span> Di chuyển</div>
-        <div><span class="key-badge">E</span> Nạp ánh sáng vào Đèn Lớn</div>
-        <div><span class="key-badge">F / Space</span> Tỏa sáng xua Bóng Mực</div>
-        <div><span class="key-badge">Chuột</span> Xoay góc nhìn camera</div>
+        <div><span class="key-badge">Shift / Q</span> Lướt (Dash)</div>
+        <div><span class="key-badge">Space</span> Nhảy</div>
+        <div><span class="key-badge">E</span> Nạp đèn | <span class="key-badge">F</span> Tỏa sáng</div>
+        <div><span class="key-badge">Esc / P</span> Tạm dừng</div>
       </div>
 
-      <div class="pulse-btn-container">
-        <div class="pulse-indicator" id="pulse-btn">⚡ TỎA SÁNG (F / Space)</div>
+      <div class="mote-bar-container">
+        <div class="mote-bar-label" id="mote-bar-text">Đom đóm: 0 / 10</div>
+        <div class="mote-slots" id="mote-slots">
+          <div class="mote-slot"></div><div class="mote-slot"></div>
+          <div class="mote-slot"></div><div class="mote-slot"></div>
+          <div class="mote-slot"></div><div class="mote-slot"></div>
+          <div class="mote-slot"></div><div class="mote-slot"></div>
+          <div class="mote-slot"></div><div class="mote-slot"></div>
+        </div>
+      </div>
+
+      <div class="abilities-container">
+        <div class="ability-btn ability-ready" id="dash-btn">
+          <div>⚡ LƯỚT</div>
+          <div style="font-size: 10px; color: #8FA3B8;" id="dash-cd-text">SẴN SÀNG</div>
+        </div>
+        <div class="ability-btn ability-ready" id="pulse-btn">
+          <div>🌟 TỎA SÁNG</div>
+          <div style="font-size: 10px; color: #8FA3B8;" id="pulse-cd-text">CẦN 3 ĐỐM</div>
+        </div>
       </div>
     </div>
   </div>
 
-  <div id="end-modal">
+  <!-- Intro Modal -->
+  <div class="modal-overlay" id="intro-modal" style="display: flex;">
     <div class="modal-box">
-      <h1 class="modal-title" id="end-title">Chiến Thắng!</h1>
-      <p class="modal-desc" id="end-desc">Mây đã thắp sáng cả 5 Đèn Lồng Lớn, sương đen đã bị xua tan khỏi Đảo Bến!</p>
-      <div class="modal-score" id="end-score">Điểm số: 1850</div>
-      <button class="restart-btn" id="restart-btn">Chơi Lại (Restart)</button>
+      <h1 class="modal-title" id="intro-title">ĐÊM 1 — ĐẢO BẾN</h1>
+      <p class="modal-desc" id="intro-desc">
+        <i>"Mây à, đêm nay sương đen đã nuốt hết ánh sáng Đảo Bến. Hãy gom đom đóm thắp sáng 5 Đèn Lớn và coi chừng lũ Bóng Mực..."</i> — Lời Ông Đăng.
+      </p>
+      <button class="btn-primary" id="start-night-btn">Bắt Đầu Đêm</button>
+    </div>
+  </div>
+
+  <!-- Pause Modal -->
+  <div class="modal-overlay" id="pause-modal">
+    <div class="modal-box">
+      <h1 class="modal-title">TẠM DỪNG</h1>
+      <p class="modal-desc">Trò chơi đang dừng. Bạn có thể tiếp tục hoặc chỉnh cài đặt.</p>
+      <button class="btn-primary" id="resume-btn">Tiếp Tục (Resume)</button>
+      <button class="btn-secondary" id="restart-night-btn">Chơi Lại Đêm Này</button>
+      <div style="margin-top: 18px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 12px;">
+        <div class="settings-row">
+          <span>Âm lượng âm thanh:</span>
+          <input type="range" id="vol-slider" min="0" max="1" step="0.05" value="0.7">
+        </div>
+        <div class="settings-row">
+          <span>Độ nhạy chuột:</span>
+          <input type="range" id="sens-slider" min="0.1" max="1.5" step="0.05" value="0.4">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Night Result Modal -->
+  <div class="modal-overlay" id="result-modal">
+    <div class="modal-box">
+      <h1 class="modal-title" id="result-title">Hoàn Thành Đêm!</h1>
+      <p class="modal-desc" id="result-desc">Tất cả ngọn đèn đã bừng sáng!</p>
+      <div style="font-size: 20px; color: #FFE9B0; margin-bottom: 20px;" id="result-score">Điểm: 0</div>
+      <button class="btn-primary" id="next-night-btn">Đêm Kế Tiếp</button>
+      <button class="btn-secondary" id="retry-btn">Thử Lại</button>
     </div>
   </div>
 

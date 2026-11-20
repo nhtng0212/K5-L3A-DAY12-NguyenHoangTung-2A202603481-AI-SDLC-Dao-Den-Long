@@ -1,51 +1,34 @@
-# Giả định & Thiết kế Phase 1 (PRD-0)
+# Đặc Tả & Tiêu Chí Nghiệm Thu (Acceptance Criteria) — Phase 2
 
-Tài liệu này ghi lại các giả định cho những điểm PRD-0 để mở hoặc chưa quy định cụ thể, nhằm đảm bảo tính nhất quán và kiểm chứng được.
+Ticket: **TICKET-02 — "Ba hòn đảo" (Phase 2)**
+Contract: **v1.1**
 
-## 1. Giả định về Cơ chế Game (Gameplay Mechanics)
-- **Hòn đảo (Đảo Bến - Đêm 1):**
-  - Đảo hình tròn bán kính 40 mét, tâm tại `(0, 0, 0)`, cao độ $Y = 0$.
-  - 5 Đèn Lồng Lớn đặt tại các vị trí đối xứng quanh đảo:
-    - L1: `(0, 0, 25)`
-    - L2: `(23.776, 0, 7.725)`
-    - L3: `(14.695, 0, -20.225)`
-    - L4: `(-14.695, 0, -20.225)`
-    - L5: `(-23.776, 0, 7.725)`
-  - Mỗi đèn cần 5 đom đóm (`lantern_cost = 5`) để thắp sáng (`lit = true`).
-  - Đèn đã thắp sáng tạo ra vùng an toàn bán kính `safe_radius = 4.0m`. Bóng Mực không thể tiến vào vùng này (bị đẩy ra ranh giới).
+## 1. Tiêu Chí Nghiệm Thu Các Tính Năng Mới (Phần 3)
 
-- **Đom đóm (Motes):**
-  - Mặc định sinh 25 đom đóm rải rác trên đảo nếu `random_motes = true`.
-  - Tự động nhặt khi người chơi cách đom đóm $\le 1.5m$ (`pickup_radius`).
-  - Sức chứa tối đa của Mây: 10 đom đóm (`carry_capacity = 10`). Đầy giỏ thì không nhặt thêm cho tới khi nạp vào đèn.
+### AC-01: Gió Lạc (Drifters)
+- **AC-01.1:** Xuất hiện ở Đêm 2 và Đêm 3 (tối đa 2 con), sinh tại tick 1200, 2400... id D1, D2...
+- **AC-01.2:** Trạng thái: `idle` (lượn 2 m/s) -> `chase` khi Mây mang $\ge 5$ đom đóm và cách $\le 15m$.
+- **AC-01.3:** Chạm Mây (khoảng cách $XZ \le 1.2m$): cướp $\min(3, \text{carried})$ đom đóm, phát sự kiện `drifter_steal`, chuyển sang `flee` bay xa Mây 7 m/s trong 240 tick rồi biến mất.
+- **AC-01.4:** Tỏa Sáng trúng Gió Lạc đang chase -> chuyển sang flee không cướp.
+- **AC-01.5:** Tỏa Sáng trúng Gió Lạc đang flee có mang đồ -> thả lại toàn bộ đom đóm tại chỗ (phát `drifter_drop`), biến mất sau 120 tick.
+- **AC-01.6:** Gió Lạc không làm mất máu Mây, không bị vùng an toàn đèn chặn, cướp bất chấp Mây đang bất tử.
 
-- **Nạp ánh sáng (Deposit):**
-  - Khi Mây đứng cách đèn $\le 3.0m$ (`interact_radius`) và nhấn `interact` (rising edge):
-    - Toàn bộ đom đóm đang mang (hoặc số lượng cần thiết để hoàn thành đèn) được nạp vào đèn.
-    - Nếu nạp đủ 5 đom đóm, đèn chuyển trạng thái `lit = true`, phát sự kiện `lantern_lit`.
+### AC-02: Bùa Gió (Charms)
+- **AC-02.1:** Xuất hiện tại vị trí quy định: Đêm 2 tại (35,0,0); Đêm 3 tại (30,0,25) và (-30,0,25). Id C1, C2.
+- **AC-02.2:** Nhặt khi $XZ \le 1.0m, dY \le 1.5m$. Phát sự kiện `charm_picked {charm_id, charm_ticks: 600}`.
+- **AC-02.3:** Trong 600 ticks: Tốc độ chạy tăng lên 7.2 m/s, Lướt không có thời gian hồi chiêu.
+- **AC-02.4:** Bùa hồi sinh lại sau 2700 ticks.
 
-- **Bóng Mực (Shades):**
-  - Mặc định sinh 3 Bóng Mực nếu `random_shades = true`.
-  - Tốc độ di chuyển: 3.0 m/s (`shade_speed = 3.0`, tức $0.05$ m/tick).
-  - Trạng thái Bóng Mực: `chase` (đuổi theo người chơi), `stunned` (bị choáng khi trúng pulse).
-  - Khi khoảng cách tới Mây $\le 1.2m$ (`shade_hit_radius`) và Mây không trong thời gian bất tử (`invuln`):
-    - Mây mất 1 ngọn lửa máu (`flames` giảm 1).
-    - Đánh rơi đom đóm theo tỉ lệ `hit_drop_ratio = 0.5` (làm tròn xuống: $\lfloor carried \times 0.5 \rfloor$).
-    - Kích hoạt thời gian bất tử 1.5s (90 ticks).
-    - Phát sự kiện `player_hit`.
+### AC-03: Nhảy, Lướt & Rơi Khỏi Đảo
+- **AC-03.1:** Nhảy (vận tốc Y 7.0 m/s, trọng lực -20 m/s^2), chỉ nhảy khi chạm đất (`grounded`).
+- **AC-03.2:** Lướt (Dash): tốc độ 14 m/s trong 12 ticks (0.2s), hồi chiêu 90 ticks (1.5s). Khi lướt trên không giữ nguyên độ cao (vận tốc Y = 0).
+- **AC-03.3:** Rơi khỏi đảo ($Y < -10$): mất 1 Ngọn Lửa, mất toàn bộ đom đóm mang theo. Đứng im 60 ticks rồi hồi sinh tại vị trí xuất phát, bất tử 90 ticks. Nếu hết máu thì thua ngay.
 
-- **Tỏa sáng (Pulse):**
-  - Nhấn `pulse` (rising edge):
-    - Điều kiện: có ít nhất 1 đom đóm (`pulse_cost = 1`) và cooldown đã hết (`pulse_cooldown_s = 1.0s` = 60 ticks).
-    - Tiêu hao 1 đom đóm mang theo.
-    - Mọi Bóng Mực trong bán kính 5.0m (`pulse_radius`) bị choáng trong 3.0s (180 ticks, `pulse_stun_s = 3.0`) và bị đẩy lùi 3.0m xa khỏi Mây (`pulse_push_m = 3.0`).
-    - Phát sự kiện `pulse` kèm danh sách `stunned_ids`.
+### AC-04: Bản Đồ 3 Đêm & Bục Nhảy
+- **AC-04.1:** Đêm 1: Đảo Bến (bán kính 40m, 5 đèn L1..L5).
+- **AC-04.2:** Đêm 2: Đảo Cau (2 đảo A và B bán kính 28m cách nhau 70m, nối cầu tre rộng 4m). 2 bục nhảy bắn Mây sang tâm đảo đối diện. 6 đèn L1..L6.
+- **AC-04.3:** Đêm 3: Đảo Chuông (3 tầng: Y=0, Y=3, Y=6, 2 dốc nghiêng, 1 bục nhảy lên tầng 2). 7 đèn L1..L7. Gió mạnh mỗi 30s thổi 5s.
 
-- **Thắng / Thua & Tính điểm:**
-  - Thắng: Khi cả 5 đèn đều được thắp sáng (`all_lit`).
-  - Thua: Hết máu (`flames == 0`, reason: `no_flames`) hoặc hết thời gian 300s (reason: `dawn`).
-  - Công thức điểm:
-    - Nhặt mỗi đom đóm: +10 điểm.
-    - Thắp sáng mỗi đèn: +200 điểm.
-    - Choáng mỗi Bóng Mực: +20 điểm.
-    - Khi thắng: cộng thêm `thời gian còn lại (s) * 5` và `flames còn lại * 100`.
+### AC-05: Tạm Dừng (Pause)
+- **AC-05.1:** Nhấn Esc / P kích hoạt tạm dừng. Snapshot ghi `state: "paused"`.
+- **AC-05.2:** Khi tạm dừng: `tick` tăng nhưng `sim_tick`, `time_left_s`, cooldowns, spawn, TTL đều đứng yên.

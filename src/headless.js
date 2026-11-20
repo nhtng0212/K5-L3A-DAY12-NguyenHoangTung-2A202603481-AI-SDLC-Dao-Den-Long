@@ -56,7 +56,6 @@ function loadInputs(filePath) {
       console.error(`Invalid inputs file format: missing 'frames' array in ${filePath}`);
       process.exit(2);
     }
-    // Verify strictly increasing ticks
     let prevTick = -1;
     for (const frame of parsed.frames) {
       if (typeof frame.tick !== 'number' || frame.tick <= prevTick) {
@@ -85,7 +84,6 @@ function run() {
     process.exit(1);
   }
 
-  // Load contract tuning if exists
   let tuning = {};
   try {
     const contractPath = path.resolve(process.cwd(), 'game.contract.json');
@@ -95,14 +93,12 @@ function run() {
         tuning = contract.tuning;
       }
     }
-  } catch (err) {
-    // Fall back to default tuning
-  }
+  } catch (err) {}
 
   const scenario = loadScenario(options.scenario);
   const inputFrames = loadInputs(options.inputs);
 
-  const game = new GameState(tuning);
+  const game = new GameState(tuning, options.night);
   game.setup(scenario, options.seed);
 
   const outLines = [];
@@ -110,13 +106,14 @@ function run() {
   // Snapshot tick 0
   outLines.push(JSON.stringify(game.getSnapshot()));
 
-  // Setup input state tracker
   let currentInput = {
     move: [0, 0],
     cam_yaw_deg: 0,
     interact: false,
     pulse: false,
-    jump: false
+    jump: false,
+    dash: false,
+    pause: false
   };
 
   let frameIdx = 0;
@@ -124,7 +121,6 @@ function run() {
   let finalTicks = 0;
 
   for (let k = 0; k < maxTicks; k++) {
-    // Check if new input frame applies at tick k
     while (frameIdx < inputFrames.length && inputFrames[frameIdx].tick === k) {
       const f = inputFrames[frameIdx];
       if (f.move !== undefined) currentInput.move = f.move;
@@ -132,30 +128,27 @@ function run() {
       if (f.interact !== undefined) currentInput.interact = f.interact;
       if (f.pulse !== undefined) currentInput.pulse = f.pulse;
       if (f.jump !== undefined) currentInput.jump = f.jump;
+      if (f.dash !== undefined) currentInput.dash = f.dash;
+      if (f.pause !== undefined) currentInput.pause = f.pause;
       frameIdx++;
     }
 
-    // Step simulation
     const events = game.step(currentInput);
     finalTicks = game.tick;
 
-    // Record events occurring during this step
     for (const ev of events) {
       outLines.push(JSON.stringify(ev));
     }
 
-    // Record snapshot if needed
     if (options.snapshotEvery > 0 && finalTicks % options.snapshotEvery === 0) {
       outLines.push(JSON.stringify(game.getSnapshot()));
     }
 
-    // Check if game ended
-    if (game.state !== 'playing') {
+    if (game.state === 'won' || game.state === 'lost') {
       break;
     }
   }
 
-  // Final end line
   const endLine = {
     type: 'end',
     ticks: finalTicks,
@@ -164,7 +157,6 @@ function run() {
   };
   outLines.push(JSON.stringify(endLine));
 
-  // Write to output file
   try {
     const outDir = path.dirname(path.resolve(options.out));
     if (!fs.existsSync(outDir)) {
