@@ -1,5 +1,12 @@
 import * as THREE from 'three';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { GameState } from './core/gameState.js';
+import {
+  createBambooTexture,
+  createTerracottaRoofTexture,
+  createStonePlazaTexture,
+  createSilkLanternTexture
+} from './core/textures.js';
 
 // --- Procedural Sound Synthesis ---
 class AudioManager {
@@ -180,9 +187,21 @@ class App {
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.container.appendChild(this.renderer.domElement);
 
+    // Initialize Procedural Textures
+    this.bambooTex = createBambooTexture();
+    this.roofTex = createTerracottaRoofTexture();
+    this.stoneTex = createStonePlazaTexture();
+    this.silkTex = createSilkLanternTexture();
+
     this.keys = {};
     this.mouse = { isDown: false, prevX: 0, prevY: 0 };
     this.walkCycle = 0;
+
+    // Shared geometry & materials for instant zero-lag firefly spawning & pickups
+    this.moteGeo = new THREE.SphereGeometry(0.25, 10, 10);
+    this.moteMat = new THREE.MeshBasicMaterial({ color: 0xfff6c2 });
+    this.moteGlowGeo = new THREE.SphereGeometry(0.5, 8, 8);
+    this.moteGlowMat = new THREE.MeshBasicMaterial({ color: 0xffe58a, transparent: true, opacity: 0.35 });
 
     this.moteMeshes = new Map();
     this.shadeMeshes = new Map();
@@ -192,9 +211,13 @@ class App {
     this.islandGroup = new THREE.Group();
     this.scene.add(this.islandGroup);
 
+    this.gltfLoader = new GLTFLoader();
+    this.models = {};
+
     this.initLights();
     this.buildWorld();
     this.buildPlayer();
+    this.load3DAssets();
     this.initEvents();
 
     this.lastTime = performance.now();
@@ -228,6 +251,14 @@ class App {
       grass.position.y = -1.25;
       grass.receiveShadow = true;
       this.islandGroup.add(grass);
+
+      // Cobblestone Central Plaza
+      const plazaGeo = new THREE.CircleGeometry(7.0, 32);
+      const plazaMat = new THREE.MeshStandardMaterial({ map: this.stoneTex, roughness: 0.85 });
+      const plazaMesh = new THREE.Mesh(plazaGeo, plazaMat);
+      plazaMesh.rotation.x = -Math.PI / 2;
+      plazaMesh.position.y = 0.02;
+      this.islandGroup.add(plazaMesh);
 
       const cliffGeo = new THREE.CylinderGeometry(40.5, 20, 20, 32);
       const cliffMat = new THREE.MeshStandardMaterial({ color: 0x1e2433, roughness: 0.95 });
@@ -286,7 +317,7 @@ class App {
       this.islandGroup.add(pad3);
     }
 
-    // Build Lanterns
+    // Build Lanterns with Textures
     for (const lData of this.gameState.lanterns) {
       const group = new THREE.Group();
       group.position.set(lData.pos[0], lData.pos[1], lData.pos[2]);
@@ -299,6 +330,7 @@ class App {
 
       const silkGeo = new THREE.CylinderGeometry(0.68, 0.68, 1.9, 16);
       const silkMat = new THREE.MeshStandardMaterial({
+        map: this.silkTex,
         color: 0xffb347,
         emissive: 0x5b5f6e,
         emissiveIntensity: 0.25,
@@ -309,7 +341,7 @@ class App {
       group.add(silk);
 
       const roofGeo = new THREE.ConeGeometry(1.8, 0.8, 8);
-      const roofMat = new THREE.MeshStandardMaterial({ color: 0x6b4a2f, roughness: 0.6 });
+      const roofMat = new THREE.MeshStandardMaterial({ map: this.roofTex, roughness: 0.6 });
       const roof = new THREE.Mesh(roofGeo, roofMat);
       roof.position.y = 3.7;
       group.add(roof);
@@ -330,7 +362,6 @@ class App {
       safeRing.position.y = 0.06;
       group.add(safeRing);
 
-      // Fuel Bar mesh on top of lantern
       const fuelBarGeo = new THREE.PlaneGeometry(1.2, 0.15);
       const fuelBarMat = new THREE.MeshBasicMaterial({ color: 0xffb347, side: THREE.DoubleSide });
       const fuelBar = new THREE.Mesh(fuelBarGeo, fuelBarMat);
@@ -370,8 +401,13 @@ class App {
     head.position.y = 1.48;
     this.playerGroup.add(head);
 
+    // Conical Hat with Woven Bamboo Texture
     const hatGeo = new THREE.ConeGeometry(0.95, 0.48, 32);
-    const hatMat = new THREE.MeshStandardMaterial({ color: 0xc9b48a, roughness: 0.85 });
+    const hatMat = new THREE.MeshStandardMaterial({
+      map: this.bambooTex,
+      color: 0xc9b48a,
+      roughness: 0.85
+    });
     const hat = new THREE.Mesh(hatGeo, hatMat);
     hat.position.y = 1.82;
     this.playerGroup.add(hat);
@@ -386,6 +422,43 @@ class App {
     this.playerGroup.add(this.miniLantern);
 
     this.scene.add(this.playerGroup);
+  }
+
+  load3DAssets() {
+    const assets = [
+      { name: 'may', url: '/models/May.glb' },
+      { name: 'scenery', url: '/models/Scenery.glb' },
+      { name: 'fox', url: '/models/Fox.glb' }
+    ];
+    assets.forEach((item) => {
+      this.gltfLoader.load(
+        item.url,
+        (gltf) => {
+          this.models[item.name] = gltf.scene;
+          if (item.name === 'scenery') {
+            gltf.scene.position.set(0, 0, -18);
+            this.islandGroup.add(gltf.scene);
+          } else if (item.name === 'fox') {
+            gltf.scene.position.set(4, 0, -4);
+            gltf.scene.scale.set(0.015, 0.015, 0.015);
+            gltf.scene.rotation.y = -Math.PI / 4;
+            this.islandGroup.add(gltf.scene);
+          } else if (item.name === 'may') {
+            while (this.playerGroup.children.length > 0) {
+              this.playerGroup.remove(this.playerGroup.children[0]);
+            }
+            this.playerGroup.add(gltf.scene);
+            this.playerLight = new THREE.PointLight(0xffe9b0, 2.0, 9);
+            this.playerLight.position.set(0.48, 1.45, 0.35);
+            this.playerGroup.add(this.playerLight);
+          }
+        },
+        undefined,
+        () => {
+          // Fallback smoothly to procedural meshes
+        }
+      );
+    });
   }
 
   initEvents() {
@@ -513,8 +586,8 @@ class App {
     let moveX = 0, moveZ = 0;
     if (this.keys['KeyW'] || this.keys['ArrowUp']) moveZ += 1;
     if (this.keys['KeyS'] || this.keys['ArrowDown']) moveZ -= 1;
-    if (this.keys['KeyA'] || this.keys['ArrowLeft']) moveX += 1;
-    if (this.keys['KeyD'] || this.keys['ArrowRight']) moveX -= 1;
+    if (this.keys['KeyA'] || this.keys['ArrowLeft']) moveX -= 1;
+    if (this.keys['KeyD'] || this.keys['ArrowRight']) moveX += 1;
 
     if (moveX !== 0 || moveZ !== 0) this.walkCycle += 0.25;
 
@@ -617,7 +690,6 @@ class App {
       pulseCdText.textContent = `${(this.gameState.pulse_cooldown_ticks / 60).toFixed(1)}s`;
     }
 
-    // Interact prompt near lantern
     const prompt = document.getElementById('interact-prompt');
     let nearLantern = null;
     for (const l of this.gameState.lanterns) {
@@ -704,7 +776,6 @@ class App {
     const progress = litCount / this.gameState.lanterns.length;
     this.ambientLight.intensity = 0.15 + 0.55 * progress;
 
-    // Lanterns sync
     for (let i = 0; i < this.gameState.lanterns.length; i++) {
       const lData = this.gameState.lanterns[i];
       const mObj = this.lanternMeshes[i];
@@ -717,11 +788,10 @@ class App {
           mObj.fuelBar.lookAt(this.camera.position);
 
           if (fuelVal < 30) {
-            // Blink at 1Hz
             const blink = Math.sin(timeSec * Math.PI * 2) > 0;
             mObj.silkMat.emissiveIntensity = blink ? 0.9 : 0.2;
             mObj.fuelBar.material.color.setHex(0xff5a5f);
-            mObj.safeRing.material.opacity = 0; // lost safe zone
+            mObj.safeRing.material.opacity = 0;
           } else {
             mObj.silkMat.emissive.setHex(0xffb347);
             mObj.silkMat.emissiveIntensity = 0.9 + Math.sin(timeSec * 3 + i) * 0.2;
@@ -730,9 +800,8 @@ class App {
           }
           mObj.light.intensity = 2.4;
         } else {
-          // Unlit
           mObj.fuelBar.visible = false;
-          mObj.silk.scale.set(0.8, 0.8, 0.8); // 20% deflated in colorblind / standard
+          mObj.silk.scale.set(0.8, 0.8, 0.8);
           mObj.silkMat.emissive.setHex(0x5b5f6e);
           mObj.silkMat.emissiveIntensity = 0.1;
           mObj.light.intensity = 0.2;
@@ -741,17 +810,14 @@ class App {
       }
     }
 
-    // Motes
     const activeIds = new Set();
     for (let i = 0; i < this.gameState.motes.length; i++) {
       const mote = this.gameState.motes[i];
       activeIds.add(mote.id);
       let mesh = this.moteMeshes.get(mote.id);
       if (!mesh) {
-        const geo = new THREE.SphereGeometry(0.25, 10, 10);
-        const mat = new THREE.MeshBasicMaterial({ color: 0xfff6c2 });
-        mesh = new THREE.Mesh(geo, mat);
-        const glow = new THREE.Mesh(new THREE.SphereGeometry(0.5, 8, 8), new THREE.MeshBasicMaterial({ color: 0xffe58a, transparent: true, opacity: 0.35 }));
+        mesh = new THREE.Mesh(this.moteGeo, this.moteMat);
+        const glow = new THREE.Mesh(this.moteGlowGeo, this.moteGlowMat);
         mesh.add(glow);
         this.scene.add(mesh);
         this.moteMeshes.set(mote.id, mesh);
@@ -766,7 +832,6 @@ class App {
       }
     }
 
-    // Shades
     const activeShadeIds = new Set();
     const shadeEyeColor = this.colorblind ? 0x00b3ff : 0xe879f9;
     const shadeEmissive = this.colorblind ? 0x00b3ff : 0x7a3cff;
@@ -817,7 +882,6 @@ class App {
       }
     }
 
-    // Drifters
     const activeDrifters = new Set();
     for (let i = 0; i < this.gameState.drifters.length; i++) {
       const d = this.gameState.drifters[i];
@@ -840,7 +904,6 @@ class App {
       }
     }
 
-    // Charms
     const activeCharms = new Set();
     for (let i = 0; i < this.gameState.charms.length; i++) {
       const c = this.gameState.charms[i];

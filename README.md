@@ -1,76 +1,96 @@
-# Đảo Đèn Lồng (Lantern Island) - Day 12 AI SDLC
+# Đảo Đèn Lồng (Lantern Island) — Bản Phát Hành v1.0.0
 
-> Sinh vien: Nguyen Hoang Tung - MSSV: 2A202603481
-> Demo Video: [Link demo video](docs/demo/demo.mp4) (se hoan thien o Phase 4)
+> **Học viên:** Nguyễn Hoàng Tùng - **MSSV:** 2A202603481  
+> **Lớp:** K5-L3A  
+> **Repo:** [K5-L3A-DAY12-NguyenHoangTung-2A202603481-AI-SDLC-Dao-Den-Long](https://github.com/nhtng0212/K5-L3A-DAY12-NguyenHoangTung-2A202603481-AI-SDLC-Dao-Den-Long)  
+> **Video Demo:** [Xem Video Demo (.mp4)](docs/demo/demo.mp4) *(Đính kèm Release v1.0.0)*
 
 ---
 
-## 1. Huong dan cai dat va chay (Toi da 3 lenh)
+## 1. Giới thiệu Dự án
+**Đảo Đèn Lồng** là trò chơi 3D góc nhìn thứ ba mang phong cách cổ tích, ấm áp. Người chơi điều khiển **Mây** — người giữ đèn nhỏ tuổi đội nón lá mang theo chiếc đèn lồng nhỏ. Trong đêm sương đen bao phủ qua 3 hòn đảo (Đảo Bến, Đảo Cau, Đảo Chuông), Mây phải chạy khắp nơi gom đom đóm thắp sáng và châm dầu cho các Đèn Lồng Lớn, né tránh Bóng Mực và Gió Lạc để bảo vệ hòn đảo sáng rực rỡ cho tới lúc Bình Minh.
+
+Dự án áp dụng quy trình **AI SDLC** qua 4 Phase hoàn chỉnh, tuân thủ nghiêm ngặt **Test Contract v1.3** với kiến trúc tách rời giữa Game Simulation Logic (deterministic, 60 tick/s) và Three.js WebGL View.
+
+---
+
+## 2. Cài Đặt & Chạy Nhanh (Tối đa 3 lệnh)
+
+Chạy mượt mà trên Windows, macOS và Linux:
 
 ```bash
-# Lenh 1: Cai dat goi thu vien
+# Lệnh 1: Cài đặt dependencies
 npm install
 
-# Lenh 2: Chay game giao dien 3D tren trinh duyet
+# Lệnh 2: Khởi chạy game giao diện 3D trên trình duyệt
 npm run dev
 
-# Lenh 3: Chay toan bo kiem thu tu dong
+# Lệnh 3: Chạy bộ kiểm thử tự động
 npm test
 ```
 
-Sau khi chay `npm run dev`, mo trinh duyet tai `http://localhost:5173`.
+Sau khi chạy `npm run dev`, mở trình duyệt tại `http://localhost:5173`.
 
 ---
 
-## 2. Dieu khien va Co che game
+## 3. Điều Khiển & Phím Tắt
 
-- **W, A, S, D**: Di chuyen May.
-- **Keo chuot**: Xoay goc nhin camera 3D.
-- **E**: Nap dom dom vao Den Long Lon (khi dung cach den <= 3m).
-- **F hoac Space**: Toa sang (Pulse) xua duoi va lam choang Bong Muc trong ban kinh 5m (tieu hao 1 dom dom).
-- **Nut Choi Lai**: Reset man choi khi Thang hoac Thua.
-
----
-
-## 3. Cach tinh diem (Scoring System)
-
-- Nhat dom dom: +10 diem / con.
-- Thap sang Den Lon: +200 diem / den.
-- Lam choang Bong Muc: +20 diem / lan.
-- Thuong khi thang: `(so giay con lai * 5) + (so ngon lua mau con lai * 100)`.
+- **W, A, S, D**: Di chuyển Mây theo góc nhìn camera.
+- **Kéo Chuột**: Xoay góc nhìn camera 3D xung quanh Mây.
+- **Space**: Nhảy (vận tốc Y 7.0 m/s, trọng lực -20 m/s²).
+- **Shift / Q**: Lướt (Dash — 14 m/s trong 12 ticks, hồi chiêu 90 ticks).
+- **E**: Nạp đom đóm vào Đèn Lớn / Châm dầu cho đèn đang sáng.
+- **F / X**: Tỏa Sáng (Pulse — tiêu hao 3 đom đóm, làm choáng và đẩy lùi Bóng Mực).
+- **Esc / P**: Mở menu Tạm dừng & Cài đặt.
 
 ---
 
-## 4. Test Contract v1.0 va Che do Headless
+## 4. Các Lệnh Kiểm Thử & Đo Đạc (Test Contract v1.3)
 
-Cau hinh tuning tai file `game.contract.json`.
-Che do headless chay khong can GPU/DOM:
-
+### 4.1. Chạy Chế Độ Headless CLI
 ```bash
 node src/headless.js --seed 42 --night 1 --ticks 180 --out docs/proof/sample_headless.jsonl --snapshot-every 60
 ```
 
-Hoac chay voi scenario va inputs:
-
+### 4.2. Chạy Benchmark Hiệu Năng
 ```bash
-node src/headless.js --seed 123 --night 1 --scenario scenario.json --inputs inputs.json --ticks 300 --out output.jsonl
+node src/benchmark.js --seed 42 --duration 30 --out bench.json
+```
+- Khởi tạo 200 Bóng Mực wander, 100 đom đóm, 3 đèn sáng, camera bay vòng tròn 30m.
+- Đo FPS trung bình, P1 Low, Load Time, Peak Memory. Kết quả lưu tại `bench.json`.
+
+### 4.3. Chạy Soak Test Độ Ổn Định
+```bash
+node src/soak.js --seed 7 --nights 10 --out soak.json
+```
+- Chạy liên tục 10 Đêm trong cùng 1 tiến trình kiểm tra crash và rò rỉ bộ nhớ.
+- Đạt chuẩn: `crashes = 0` và `mem_end <= 1.2 * mem_start`. Kết quả lưu tại `soak.json`.
+
+### 4.4. Xuất Bảng Xếp Hạng Cục Bộ
+```bash
+node src/leaderboard.js --export leaderboard_export.json
 ```
 
 ---
 
-## 5. Sang tao cua toi (My Creations)
+## 5. Dễ Tiếp Cận (Accessibility) & Sáng Tạo
 
-1. **Hinh tuong May gan lien voi non la truyen thong**: Non la gan chiec den long nho tren chop non toa anh sang am ap.
-2. **Am thanh tu sinh bang Web Audio API**: Khong can file mp3/wav ngoai, tu tao chuong ngan, tieng gong thap den, tieng song toa sang va tieng canh bao.
-3. **Vong sang bao ve quanh den (Safe Zone)**: Khi den sang, xuat hien quan sang tren mat dat ngan khong cho Bong Muc tien vao.
-4. **Bao toan Test Contract**: Toan bo tinh nang sang tao do hoa/am thanh nam o lop hien thi web, khong lam anh huong den output cua che do headless.
+1. **Chế độ Mù Màu (Colorblind Mode):**
+   - Bảng màu dễ phân biệt: Mắt & viền Bóng Mực chuyển sang `#00B3FF`, cảnh báo chuyển sang `#FFFFFF` kèm icon `⚠`.
+   - Đèn tắt bị xẹp 20% kích thước và đèn sắp cạn dầu nhấp nháy chậm 1 Hz giúp nhận diện trực quan không phụ thuộc vào màu sắc.
+2. **Âm thanh thủ tục (Web Audio API Synthesizer):**
+   - Toàn bộ âm thanh nhặt đom đóm, chuông nạp đèn, nhảy, lướt, va chạm, cảnh báo 10s cuối được tạo thủ tục thời gian thực, không tải file âm thanh ngoài.
+3. **Cài đặt cá nhân hóa:**
+   - Hỗ trợ đổi phím điều khiển, tùy chỉnh âm lượng và độ nhạy chuột được lưu vĩnh viễn trên trình duyệt (`localStorage`).
 
 ---
 
-## 6. Tai lieu bo sung
+## 6. Tài Liệu Dự Án
 
-- [AGENTS.md](AGENTS.md): Quy uoc va lenh cho AI agent.
-- [docs/notes/assumptions.md](docs/notes/assumptions.md): Gia dinh thiet ke Phase 1.
-- [docs/notes/ai_log.md](docs/notes/ai_log.md): Nhat ky su dung AI va uoc tinh token.
-- [docs/proof/phase-1.md](docs/proof/phase-1.md): Bang chung kiem chung chi tiet.
-- [CREDITS.md](CREDITS.md): Ghi nguon thu vien va asset.
+- [AGENTS.md](AGENTS.md): Hướng dẫn điều phối AI Agent.
+- [CHANGELOG.md](CHANGELOG.md): Toàn bộ nhật ký cập nhật qua 4 Phase.
+- [docs/notes/retro.md](docs/notes/retro.md): Báo cáo tổng kết dự án & đánh giá sử dụng AI.
+- [docs/notes/adr-001-lantern-fuel-and-win-rules.md](docs/notes/adr-001-lantern-fuel-and-win-rules.md): Quyết định kiến trúc ADR-001.
+- [docs/proof/phase-1.md](docs/proof/phase-1.md), [phase-2.md](docs/proof/phase-2.md), [phase-3.md](docs/proof/phase-3.md): Hồ sơ bằng chứng nghiệm thu.
+- [bench.json](bench.json) & [soak.json](soak.json): Kết quả đo đạc benchmark và soak test thực tế.
+- [CREDITS.md](CREDITS.md) & [LICENSE](LICENSE): Bản quyền & giấy phép MIT.
